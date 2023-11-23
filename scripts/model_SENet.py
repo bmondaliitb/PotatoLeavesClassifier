@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
 
+import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from Configurations import *
 from Logger import CustomLogger
-from helper_functions import *
 from potato import PotatoLeavesClassifier
 
-import tensorflow as tf
+import pickle
 
 logger = CustomLogger("INFO")  # initializing logger
-
 
 
 """ Model SENet"""
@@ -44,6 +42,7 @@ def se_block(input_tensor, ratio=16):
 if __name__=="__main__":
 
     model_SENet = PotatoLeavesClassifier()
+    model_SENet.load_dataset()
     # Now, let's build the model using the Functional API:
     input_layer = tf.keras.layers.Input(shape=(IMG_SIZE[0], IMG_SIZE[1], 3))
     
@@ -60,7 +59,7 @@ if __name__=="__main__":
     
     x = Flatten()(x)
     x = Dense(512, activation='relu')(x)
-    output_layer = Dense(model_SENet.num_classes, activation='softmax')(x)
+    output_layer = Dense(int(model_SENet.num_classes), activation='softmax')(x)
     
     model = tf.keras.models.Model(inputs=input_layer, outputs=output_layer)
     
@@ -76,12 +75,11 @@ if __name__=="__main__":
     #          epochs=EPOCHS)
     
     history = model.fit(model_SENet.train_gen_combined, validation_data=model_SENet.validation_generator,
-                        steps_per_epoch=(len(model_SENet.df_train_1) + len(model_SENet.df_train_2)) // BATCH_SIZE,
+                        steps_per_epoch=(len(model_SENet.df_train_1) + model_SENet.dir_train_generator.samples) // BATCH_SIZE,
                         epochs=EPOCHS)
-    
+
     model.save('model_se_net.h5')
-    import pickle
-    
+
     # Save the history object to a file
     with open('history.pkl', 'wb') as f:
         pickle.dump(history.history, f)
